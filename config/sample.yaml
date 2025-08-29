@@ -1,0 +1,27 @@
+# Scarfy 個人用設定ファイル
+# 現在の run_claude_demo() と同等の機能を提供する設定例
+
+workflows:
+  - name: "meeting_notes_workflow"
+    trigger:
+      type: "file_watcher"
+      event_type: "mtgs_file_change"
+      path: "~/Downloads"  # 個人パス（環境変数展開）
+      recursive: false
+      filename_patterns: ["*_Meet_*.txt"]
+      watch_events: ["created", "modified"]
+      debounce_delay: 10.0
+      ignore_temp_files: ["*.tmp", "*.temp", "~*", ".#*", "#*#", ".DS_Store"]
+    agent:
+      type: "claude_code"
+      prompt_file: "prompts/sample_meeting_summary.md"  # 外部プロンプト参照
+      timeout: 600
+      max_file_size: 10485760  # 10MB
+      allowed_extensions: [".txt"]
+      include_file_path: true
+      output_dir: "~/Documents/obsidian-cfiken/meeting_notes"
+    output:
+      type: "console"
+      prefix: "[DOCS-REVIEW]"
+      pretty: true
+      timestamp: true

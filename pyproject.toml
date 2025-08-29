@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scarfy"
+version = "0.1.0"
+description = "Agent Automation Framework"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+requires-python = ">=3.11"
+dependencies = [
+    "aiofiles>=23.0.0",
+    "watchdog>=3.0.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0.0",
+    "structlog>=23.0.0",
+    "apscheduler>=3.10.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "types-aiofiles>=23.0.0",
+    "types-PyYAML>=6.0.0",
+]
+
+[project.scripts]
+scarfy = "scarfy.main:main_sync"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

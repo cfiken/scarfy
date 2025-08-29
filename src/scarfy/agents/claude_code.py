@@ -131,7 +131,7 @@ class ClaudeCodeAgent(Agent):
             "トリガー発火: %s (イベント: %s) - %s",
             file_path,
             event.type,
-            start_time.strftime('%H:%M:%S')
+            start_time.strftime("%H:%M:%S"),
         )
 
         # 基本的な結果辞書を作成
@@ -371,7 +371,7 @@ class ClaudeCodeAgent(Agent):
                     "Claude Code 実行完了 (%.1f秒) 出力長: %d文字 stderr: %s",
                     execution_time,
                     len(claude_output),
-                    stderr[:200]
+                    stderr[:200],
                 )
 
             return claude_output, execution_time
@@ -407,7 +407,7 @@ class ClaudeCodeAgent(Agent):
 
         try:
             logger = get_logger(__name__)
-            logger.info("MCP サーバー自動設定を開始: %s", ', '.join(new_servers))
+            logger.info("MCP サーバー自動設定を開始: %s", ", ".join(new_servers))
             results = await MCPToolsManager.ensure_servers_configured(new_servers)
 
             for server, success in results.items():

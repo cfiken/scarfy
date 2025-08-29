@@ -108,7 +108,7 @@ async def main() -> None:
 
     # ロギング初期化
     init_logging()
-    
+
     # 引数に基づいて適切なモードを実行
     if args.config:
         await run_with_config(args.config)
@@ -135,7 +135,7 @@ async def run_with_config(config_path: str) -> None:
         config_file_path = Path(config_path)
 
         logger = get_logger(__name__)
-        
+
         if not config_file_path.exists():
             logger.error("設定ファイルが見つかりません: %s", config_path)
             return
@@ -181,7 +181,9 @@ async def run_with_config(config_path: str) -> None:
                         del agent_config["prompt_file"]  # prompt_file は削除
                         logger.info("プロンプト読み込み: %s", str(prompt_path))
                     else:
-                        logger.warning("プロンプトファイルが見つかりません: %s", str(prompt_path))
+                        logger.warning(
+                            "プロンプトファイルが見つかりません: %s", str(prompt_path)
+                        )
 
                 # パスの環境変数展開
                 trigger_config = workflow_config.get("trigger", {}).copy()
@@ -203,14 +205,14 @@ async def run_with_config(config_path: str) -> None:
                     output_config=workflow_config.get("output", {}),
                 )
 
-                logger.info("ワークフロー登録: %s", workflow_config['name'])
+                logger.info("ワークフロー登録: %s", workflow_config["name"])
                 add_workflow_with_auto_trigger(engine, workflow)
 
             except Exception as e:
                 logger.error(
                     "ワークフローの設定エラー: %s - %s",
-                    workflow_config.get('name', '不明'),
-                    str(e)
+                    workflow_config.get("name", "不明"),
+                    str(e),
                 )
                 continue
 

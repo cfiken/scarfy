@@ -11,6 +11,9 @@ import asyncio
 from typing import List, Dict
 from .logger import get_logger
 
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
+
 
 class MCPServerError(Exception):
     """MCP サーバー関連エラーの基底クラス。"""
@@ -94,7 +97,6 @@ class MCPToolsManager:
 
         all_tools = []
         for server in server_names:
-            logger = get_logger(__name__)
             if server in MCP_TOOLS_MAP:
                 tools = MCP_TOOLS_MAP[server]
                 all_tools.extend(tools)
@@ -121,7 +123,6 @@ class MCPToolsManager:
             tools: そのサーバーが提供するツール名のリスト
         """
         MCP_TOOLS_MAP[server_name] = tools
-        logger = get_logger(__name__)
         logger.info(
             "MCP %s のツールマッピングを追加: %s", server_name, ", ".join(tools)
         )
@@ -163,7 +164,6 @@ class MCPToolsManager:
             try:
                 # 1. 既に設定されているかチェック
                 if await MCPToolsManager.is_server_configured(server_name):
-                    logger = get_logger(__name__)
                     logger.debug("MCP %s は既に設定済みです", server_name)
                     results[server_name] = True
                     continue
@@ -179,17 +179,14 @@ class MCPToolsManager:
                 results[server_name] = True
 
             except MCPServerConfigError as e:
-                logger = get_logger(__name__)
                 logger.error("MCP 設定エラー: %s", str(e))
                 results[server_name] = False
 
             except MCPServerCommandError as e:
-                logger = get_logger(__name__)
                 logger.error("MCP コマンド実行エラー: %s", str(e))
                 results[server_name] = False
 
             except Exception as e:
-                logger = get_logger(__name__)
                 logger.error(
                     "MCP %s の設定中に予期しないエラー: %s", server_name, str(e)
                 )
@@ -248,11 +245,9 @@ class MCPToolsManager:
             stdout, stderr = await process.communicate()
 
             if process.returncode == 0:
-                logger = get_logger(__name__)
                 logger.info("MCP %s を追加しました: %s", server_name, " ".join(command))
             else:
                 stderr_text = stderr.decode()
-                logger = get_logger(__name__)
                 logger.debug(
                     "MCP add failed - stderr: %s, stdout: %s, return code: %d",
                     stderr_text,

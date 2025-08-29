@@ -17,6 +17,9 @@ from ..core.interfaces import Agent
 from ..core.events import Event
 from ..utils.logger import get_logger
 
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
+
 
 class FilePrintAgent(Agent):
     """新規作成されたファイルの内容を標準出力に表示するエージェント。
@@ -148,7 +151,6 @@ class FilePrintAgent(Agent):
                 return result
 
             # 標準出力に表示
-            logger = get_logger(__name__)
             trigger_action = result["trigger_action"]
             logger.info(
                 "ファイル表示: %s (ファイル: %s, サイズ: %sバイト)",

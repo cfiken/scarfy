@@ -25,6 +25,9 @@ from ..utils.template_engine import TemplateEngine
 from ..utils.file_operations import FileOperations
 from ..utils.logger import get_logger
 
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
+
 
 class ClaudeCodeAgent(Agent):
     """Claude Code CLIを使用してファイル処理を行うエージェント。
@@ -125,7 +128,6 @@ class ClaudeCodeAgent(Agent):
         start_time = datetime.now()
 
         # トリガー発火ログ
-        logger = get_logger(__name__)
         file_path = event.data.get("file_path", "Unknown")
         logger.info(
             "トリガー発火: %s (イベント: %s) - %s",
@@ -281,7 +283,6 @@ class ClaudeCodeAgent(Agent):
         # setup tools
         base_tools = ["Edit", "Write", "Read"]
         mcp_tools = MCPToolsManager.get_tools_for_servers(mcp_servers)
-        logger = get_logger(__name__)
         logger.debug("MCP tools: %s", mcp_tools)
         additional_tools = config.get("additional_tools", [])
         all_tools = base_tools + mcp_tools + additional_tools
@@ -318,7 +319,6 @@ class ClaudeCodeAgent(Agent):
         try:
             if show_realtime_output:
                 # リアルタイム出力モード
-                logger = get_logger(__name__)
                 logger.info("Claude Code 実行開始")
 
                 # 標準出力をリアルタイムで読み取り
@@ -335,7 +335,6 @@ class ClaudeCodeAgent(Agent):
                         # リアルタイムで出力を表示（空行以外）
                         stripped_line = decoded_line.rstrip()
                         if stripped_line:
-                            logger = get_logger(__name__)
                             logger.debug("Claude Code output: %s", stripped_line)
                     except asyncio.TimeoutError:
                         # タイムアウトしてもプロセスが生きていれば続行
@@ -366,7 +365,6 @@ class ClaudeCodeAgent(Agent):
                 )
 
             if show_realtime_output:
-                logger = get_logger(__name__)
                 logger.info(
                     "Claude Code 実行完了 (%.1f秒) 出力長: %d文字 stderr: %s",
                     execution_time,
@@ -401,25 +399,20 @@ class ClaudeCodeAgent(Agent):
             s for s in server_names if s not in self._mcp_servers_initialized
         ]
         if not new_servers:
-            logger = get_logger(__name__)
             logger.debug("すべてのMCPサーバーが初期化済み: %s", server_names)
             return  # 全て初期化済み
 
         try:
-            logger = get_logger(__name__)
             logger.info("MCP サーバー自動設定を開始: %s", ", ".join(new_servers))
             results = await MCPToolsManager.ensure_servers_configured(new_servers)
 
             for server, success in results.items():
                 if success:
                     self._mcp_servers_initialized.add(server)
-                    logger = get_logger(__name__)
                     logger.info("MCP サーバー設定完了: %s", server)
                 else:
-                    logger = get_logger(__name__)
                     logger.warning("MCP サーバー自動設定失敗: %s", server)
 
         except Exception as e:
-            logger = get_logger(__name__)
             logger.error("MCP サーバー設定中にエラーが発生: %s", str(e))
             # エラーが発生してもワークフロー実行は継続

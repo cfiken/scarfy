@@ -16,6 +16,9 @@ from .events import EventBus, Event
 from .interfaces import Trigger, Agent, Output
 from ..utils.logger import get_logger
 
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
+
 
 class Workflow:
     """単一ワークフロー設定を表現します。
@@ -246,7 +249,6 @@ class ScarfyEngine:
             # Get the configured agent
             agent_type = workflow.agent_config.get("type")
             if not agent_type or agent_type not in self.agents:
-                logger = get_logger(__name__)
                 logger.error(
                     "Agent '%s' not found for workflow '%s'", agent_type, workflow.name
                 )
@@ -263,7 +265,6 @@ class ScarfyEngine:
                 output = self.outputs[output_type]
                 await output.send(result, workflow.output_config)
             else:
-                logger = get_logger(__name__)
                 logger.error(
                     "Output '%s' not found for workflow '%s'",
                     output_type,
@@ -272,5 +273,4 @@ class ScarfyEngine:
 
         except Exception as e:
             # Log error but don't let it crash other workflows
-            logger = get_logger(__name__)
             logger.error("Error processing workflow '%s': %s", workflow.name, str(e))

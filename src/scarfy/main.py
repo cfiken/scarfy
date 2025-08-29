@@ -31,6 +31,9 @@ from .outputs.file import FileOutput
 from .config.loader import ConfigLoader
 from .utils.logger import get_logger, init_logging
 
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
+
 
 def add_workflow_with_auto_trigger(engine: ScarfyEngine, workflow: Workflow) -> None:
     """ワークフローを追加し、必要に応じて自動でトリガーインスタンスを作成。
@@ -47,7 +50,6 @@ def add_workflow_with_auto_trigger(engine: ScarfyEngine, workflow: Workflow) -> 
 
         # まだ登録されていない場合は新しいトリガーインスタンスを作成
         if trigger_name not in engine.triggers:
-            logger = get_logger(__name__)
             logger.info("新しいトリガー作成: %s (path: %s)", trigger_name, path)
             engine.register_trigger(trigger_name, FileWatcherTrigger())
 
@@ -115,7 +117,6 @@ async def main() -> None:
     elif args.manual:
         await run_manual_mode(engine)
     else:
-        logger = get_logger(__name__)
         logger.error("Please specify one of: --config <file> or --manual")
         logger.info("Use --help for more information.")
 
@@ -133,8 +134,6 @@ async def run_with_config(config_path: str) -> None:
         # 設定ファイルを読み込み
         loader = ConfigLoader()
         config_file_path = Path(config_path)
-
-        logger = get_logger(__name__)
 
         if not config_file_path.exists():
             logger.error("設定ファイルが見つかりません: %s", config_path)
@@ -268,7 +267,6 @@ async def run_manual_mode(engine: ScarfyEngine) -> None:
     # エンジンをバックグラウンドで開始
     engine_task = asyncio.create_task(engine.start())
 
-    logger = get_logger(__name__)
     logger.info("Manual trigger mode - Interactive workflow testing")
     print("📝 Available commands:")
     print("   'trigger' - Send a manual trigger event")

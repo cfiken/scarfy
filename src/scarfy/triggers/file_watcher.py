@@ -21,6 +21,7 @@ import time
 
 from ..core.interfaces import Trigger
 from ..core.events import Event, EventBus
+from ..utils.logger import get_logger
 
 
 class FileChangeHandler(FileSystemEventHandler):
@@ -252,7 +253,8 @@ class FileChangeHandler(FileSystemEventHandler):
         if not event.is_directory and self.watch_created:
             src_path = str(event.src_path)  # bytes to str conversion
             if self._should_process_file(src_path):
-                print(f"📁 [FileWatcherTrigger] ファイル作成検出: {src_path}")
+                logger = get_logger(__name__)
+                logger.info("ファイル作成検出: %s", src_path)
                 self._schedule_debounced_event("file_created", src_path)
 
     def on_modified(self, event: FileSystemEvent) -> None:
@@ -267,7 +269,8 @@ class FileChangeHandler(FileSystemEventHandler):
         if not event.is_directory and self.watch_modified:
             src_path = str(event.src_path)  # bytes to str conversion
             if self._should_process_file(src_path):
-                print(f"✏️ [FileWatcherTrigger] ファイル変更検出: {src_path}")
+                logger = get_logger(__name__)
+                logger.info("ファイル変更検出: %s", src_path)
                 self._schedule_debounced_event("file_modified", src_path)
 
     async def _publish_event(self, action: str, file_path: str) -> None:
@@ -293,7 +296,8 @@ class FileChangeHandler(FileSystemEventHandler):
             timestamp=None,  # Auto-generated
             source="file_watcher",
         )
-        print(f"🚀 [FileWatcherTrigger] デバウンス完了、イベント発行: {event.data}")
+        logger = get_logger(__name__)
+        logger.debug("デバウンス完了、イベント発行: %s", event.data)
         await self.event_bus.publish(event)
 
     async def cleanup(self) -> None:

@@ -29,6 +29,10 @@ from .agents.claude_code import ClaudeCodeAgent
 from .outputs.console import ConsoleOutput
 from .outputs.file import FileOutput
 from .config.loader import ConfigLoader
+from .utils.logger import get_logger, init_logging
+
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
 
 
 def add_workflow_with_auto_trigger(engine: ScarfyEngine, workflow: Workflow) -> None:
@@ -46,7 +50,7 @@ def add_workflow_with_auto_trigger(engine: ScarfyEngine, workflow: Workflow) -> 
 
         # まだ登録されていない場合は新しいトリガーインスタンスを作成
         if trigger_name not in engine.triggers:
-            print(f"🔧 新しいトリガー作成: {trigger_name} (path: {path})")
+            logger.info("新しいトリガー作成: %s (path: %s)", trigger_name, path)
             engine.register_trigger(trigger_name, FileWatcherTrigger())
 
         # ワークフローの設定を更新
@@ -104,14 +108,17 @@ async def main() -> None:
     engine.register_output("console", ConsoleOutput())
     engine.register_output("file", FileOutput())
 
+    # ロギング初期化
+    init_logging()
+
     # 引数に基づいて適切なモードを実行
     if args.config:
         await run_with_config(args.config)
     elif args.manual:
         await run_manual_mode(engine)
     else:
-        print("Please specify one of: --config <file> or --manual")
-        print("Use --help for more information.")
+        logger.error("Please specify one of: --config <file> or --manual")
+        logger.info("Use --help for more information.")
 
 
 async def run_with_config(config_path: str) -> None:
@@ -129,18 +136,18 @@ async def run_with_config(config_path: str) -> None:
         config_file_path = Path(config_path)
 
         if not config_file_path.exists():
-            print(f"❌ 設定ファイルが見つかりません: {config_path}")
+            logger.error("設定ファイルが見つかりません: %s", config_path)
             return
 
-        print(f"📁 設定ファイル読み込み中: {config_path}")
+        logger.info("設定ファイル読み込み中: %s", config_path)
         config = loader.load_config(config_file_path)
 
         if "workflows" not in config:
-            print("❌ 設定ファイルに workflows が定義されていません")
+            logger.error("設定ファイルに workflows が定義されていません")
             return
 
         workflows_config = config["workflows"]
-        print(f"📝 {len(workflows_config)}個のワークフローを読み込みました")
+        logger.info("ワークフローを読み込みました: %d個", len(workflows_config))
 
         # エンジンを作成・設定
         engine = ScarfyEngine()
@@ -171,9 +178,11 @@ async def run_with_config(config_path: str) -> None:
                         prompt_content = loader.load_prompt_from_file(prompt_path)
                         agent_config["prompt"] = prompt_content
                         del agent_config["prompt_file"]  # prompt_file は削除
-                        print(f"   📄 プロンプト読み込み: {prompt_path}")
+                        logger.info("プロンプト読み込み: %s", str(prompt_path))
                     else:
-                        print(f"   ⚠️ プロンプトファイルが見つかりません: {prompt_path}")
+                        logger.warning(
+                            "プロンプトファイルが見つかりません: %s", str(prompt_path)
+                        )
 
                 # パスの環境変数展開
                 trigger_config = workflow_config.get("trigger", {}).copy()
@@ -195,28 +204,30 @@ async def run_with_config(config_path: str) -> None:
                     output_config=workflow_config.get("output", {}),
                 )
 
-                print(f"   ✅ ワークフロー登録: {workflow_config['name']}")
+                logger.info("ワークフロー登録: %s", workflow_config["name"])
                 add_workflow_with_auto_trigger(engine, workflow)
 
             except Exception as e:
-                print(
-                    f"   ❌ ワークフロー '{workflow_config.get('name', '不明')}' の設定エラー: {e}"
+                logger.error(
+                    "ワークフローの設定エラー: %s - %s",
+                    workflow_config.get("name", "不明"),
+                    str(e),
                 )
                 continue
 
-        print("\n🚀 Scarfy開始 - 設定ファイルベースモード")
-        print("⏹️  Press Ctrl+C to stop\n")
+        logger.info("Scarfy開始 - 設定ファイルベースモード")
+        logger.info("Press Ctrl+C to stop")
 
         # エンジン開始
         await engine.start()
 
     except KeyboardInterrupt:
-        print("\n⏹️  Stopping Scarfy...")
+        logger.info("Stopping Scarfy...")
         if "engine" in locals():
             await engine.stop()
-        print("✅ Scarfy stopped.")
+        logger.info("Scarfy stopped.")
     except Exception as e:
-        print(f"❌ エラーが発生しました: {e}")
+        logger.error("エラーが発生しました: %s", str(e))
 
 
 async def run_manual_mode(engine: ScarfyEngine) -> None:
@@ -256,7 +267,7 @@ async def run_manual_mode(engine: ScarfyEngine) -> None:
     # エンジンをバックグラウンドで開始
     engine_task = asyncio.create_task(engine.start())
 
-    print("🎮 Manual trigger mode - Interactive workflow testing")
+    logger.info("Manual trigger mode - Interactive workflow testing")
     print("📝 Available commands:")
     print("   'trigger' - Send a manual trigger event")
     print("   'claude <file_path> <prompt>' - Analyze file with Claude Code")
@@ -281,12 +292,12 @@ async def run_manual_mode(engine: ScarfyEngine) -> None:
                         "timestamp": datetime.now().isoformat(),
                     }
                 )
-                print("✅ Trigger sent!")
+                logger.info("Manual trigger sent")
             elif command.startswith("claude "):
                 # Claude Code実行コマンド: claude <file_path> <prompt>
                 parts = command.split(" ", 2)
                 if len(parts) < 3:
-                    print("❌ Usage: claude <file_path> <prompt>")
+                    logger.error("Usage: claude <file_path> <prompt>")
                     print("   Example: claude test.py このコードをレビューしてください")
                 else:
                     file_path = parts[1]
@@ -299,7 +310,7 @@ async def run_manual_mode(engine: ScarfyEngine) -> None:
                             "timestamp": datetime.now().isoformat(),
                         }
                     )
-                    print(f"✅ Claude Code analysis started for: {file_path}")
+                    logger.info("Claude Code analysis started: %s", file_path)
             elif command == "help" or command == "h":
                 print("Commands:")
                 print("  'trigger' (or 't') - Send a manual trigger event")
@@ -309,17 +320,16 @@ async def run_manual_mode(engine: ScarfyEngine) -> None:
             elif command == "":
                 continue  # Ignore empty input
             else:
-                print(
-                    f"❌ Unknown command: '{command}'. Type 'help' for available commands."
-                )
+                logger.warning("Unknown command: %s", command)
+                print("Type 'help' for available commands.")
 
     except KeyboardInterrupt:
         pass
 
-    print("\n⏹️  Stopping manual mode...")
+    logger.info("Stopping manual mode...")
     engine_task.cancel()
     await engine.stop()
-    print("✅ Manual mode stopped.")
+    logger.info("Manual mode stopped.")
 
 
 if __name__ == "__main__":

@@ -23,6 +23,10 @@ from ..core.events import Event
 from ..utils.mcp_tools import MCPToolsManager
 from ..utils.template_engine import TemplateEngine
 from ..utils.file_operations import FileOperations
+from ..utils.logger import get_logger
+
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
 
 
 class ClaudeCodeAgent(Agent):
@@ -125,8 +129,11 @@ class ClaudeCodeAgent(Agent):
 
         # トリガー発火ログ
         file_path = event.data.get("file_path", "Unknown")
-        print(
-            f"🚀 [ClaudeCodeAgent] トリガー発火: {file_path} (イベント: {event.type}) - {start_time.strftime('%H:%M:%S')}"
+        logger.info(
+            "トリガー発火: %s (イベント: %s) - %s",
+            file_path,
+            event.type,
+            start_time.strftime("%H:%M:%S"),
         )
 
         # 基本的な結果辞書を作成
@@ -276,7 +283,7 @@ class ClaudeCodeAgent(Agent):
         # setup tools
         base_tools = ["Edit", "Write", "Read"]
         mcp_tools = MCPToolsManager.get_tools_for_servers(mcp_servers)
-        print(f"🔍 [DEBUG] MCP tools: {mcp_tools}")
+        logger.debug("MCP tools: %s", mcp_tools)
         additional_tools = config.get("additional_tools", [])
         all_tools = base_tools + mcp_tools + additional_tools
         cmd_args.extend(["--allowedTools"] + all_tools)
@@ -312,7 +319,7 @@ class ClaudeCodeAgent(Agent):
         try:
             if show_realtime_output:
                 # リアルタイム出力モード
-                print("🤖 [Claude Code] 実行開始...")
+                logger.info("Claude Code 実行開始")
 
                 # 標準出力をリアルタイムで読み取り
                 while True:
@@ -328,7 +335,7 @@ class ClaudeCodeAgent(Agent):
                         # リアルタイムで出力を表示（空行以外）
                         stripped_line = decoded_line.rstrip()
                         if stripped_line:
-                            print(f"💬 [Claude]: {stripped_line}")
+                            logger.debug("Claude Code output: %s", stripped_line)
                     except asyncio.TimeoutError:
                         # タイムアウトしてもプロセスが生きていれば続行
                         if process.returncode is not None:
@@ -358,9 +365,12 @@ class ClaudeCodeAgent(Agent):
                 )
 
             if show_realtime_output:
-                print(f"✅ [Claude Code] 実行完了 ({execution_time:.1f}秒)")
-                print(f"🔍 [DEBUG] Claude出力長: {len(claude_output)} 文字")
-                print(f"🔍 [DEBUG] Stderr内容: {stderr[:200]}...")
+                logger.info(
+                    "Claude Code 実行完了 (%.1f秒) 出力長: %d文字 stderr: %s",
+                    execution_time,
+                    len(claude_output),
+                    stderr[:200],
+                )
 
             return claude_output, execution_time
 
@@ -389,20 +399,20 @@ class ClaudeCodeAgent(Agent):
             s for s in server_names if s not in self._mcp_servers_initialized
         ]
         if not new_servers:
-            print(f"🔍 [DEBUG] すべてのMCPサーバーが初期化済み: {server_names}")
+            logger.debug("すべてのMCPサーバーが初期化済み: %s", server_names)
             return  # 全て初期化済み
 
         try:
-            print(f"🔧 [MCP] サーバー自動設定を開始: {', '.join(new_servers)}")
+            logger.info("MCP サーバー自動設定を開始: %s", ", ".join(new_servers))
             results = await MCPToolsManager.ensure_servers_configured(new_servers)
 
             for server, success in results.items():
                 if success:
                     self._mcp_servers_initialized.add(server)
-                    print(f"✅ [MCP] {server} の設定が完了しました")
+                    logger.info("MCP サーバー設定完了: %s", server)
                 else:
-                    print(f"⚠️ [MCP] {server} の自動設定に失敗しました")
+                    logger.warning("MCP サーバー自動設定失敗: %s", server)
 
         except Exception as e:
-            print(f"❌ [MCP] サーバー設定中にエラーが発生しました: {str(e)}")
+            logger.error("MCP サーバー設定中にエラーが発生: %s", str(e))
             # エラーが発生してもワークフロー実行は継続

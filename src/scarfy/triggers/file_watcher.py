@@ -21,6 +21,10 @@ import time
 
 from ..core.interfaces import Trigger
 from ..core.events import Event, EventBus
+from ..utils.logger import get_logger
+
+# モジュールレベルでロガーを定義
+logger = get_logger(__name__)
 
 
 class FileChangeHandler(FileSystemEventHandler):
@@ -158,8 +162,11 @@ class FileChangeHandler(FileSystemEventHandler):
         self._next_timer_id += 1
         self.timer_ids[file_path] = timer_id
 
-        print(
-            f"⏰ [FileWatcherTrigger] デバウンスタイマー作成: {file_path} (ID: {timer_id}, action: {action})"
+        logger.debug(
+            "⏰ [FileWatcherTrigger] デバウンスタイマー作成: %s (ID: %s, action: %s)",
+            file_path,
+            timer_id,
+            action,
         )
 
         # 既存のタイマーをキャンセル（ベストエフォート）
@@ -197,34 +204,46 @@ class FileChangeHandler(FileSystemEventHandler):
             # 条件チェック1: 自分が最新のタイマーか？
             current_timer_id = self.timer_ids.get(file_path)
             if current_timer_id != timer_id:
-                print(
-                    f"⏰ [FileWatcherTrigger] 古いタイマーのため実行スキップ: {file_path} (ID: {timer_id}, 現在: {current_timer_id})"
+                logger.debug(
+                    "⏰ [FileWatcherTrigger] 古いタイマーのため実行スキップ: %s (ID: %s, 現在: %s)",
+                    file_path,
+                    timer_id,
+                    current_timer_id,
                 )
                 return
 
             # 条件チェック2: 十分な時間が経過したか？
             if file_path not in self.last_event_times:
-                print(
-                    f"⏰ [FileWatcherTrigger] イベント時刻が削除されているため実行スキップ: {file_path} (ID: {timer_id})"
+                logger.debug(
+                    "⏰ [FileWatcherTrigger] イベント時刻が削除されているため実行スキップ: %s (ID: %s)",
+                    file_path,
+                    timer_id,
                 )
                 return
 
             time_since_last_event = time.time() - self.last_event_times[file_path]
             if time_since_last_event < self.debounce_delay:
-                print(
-                    f"⏰ [FileWatcherTrigger] まだ新しいイベントがあるため実行スキップ: {file_path} (ID: {timer_id}, 経過時間: {time_since_last_event:.2f}s)"
+                logger.debug(
+                    "⏰ [FileWatcherTrigger] まだ新しいイベントがあるため実行スキップ: %s (ID: %s, 経過時間: %.2fs)",
+                    file_path,
+                    timer_id,
+                    time_since_last_event,
                 )
                 return
 
             # 全ての条件を満たした場合のみイベント発行
-            print(
-                f"🚀 [FileWatcherTrigger] デバウンス条件クリア、イベント発行: {file_path} (ID: {timer_id})"
+            logger.debug(
+                "🚀 [FileWatcherTrigger] デバウンス条件クリア、イベント発行: %s (ID: %s)",
+                file_path,
+                timer_id,
             )
             await self._publish_event(action, file_path)
 
         except asyncio.CancelledError:
-            print(
-                f"⏰ [FileWatcherTrigger] デバウンス: {file_path} のタイマー(ID: {timer_id})がキャンセルされました"
+            logger.debug(
+                "⏰ [FileWatcherTrigger] デバウンス: %s のタイマー(ID: %s)がキャンセルされました",
+                file_path,
+                timer_id,
             )
             raise
         finally:
@@ -236,8 +255,10 @@ class FileChangeHandler(FileSystemEventHandler):
                     del self.last_event_times[file_path]
                 if file_path in self.timer_ids:
                     del self.timer_ids[file_path]
-                print(
-                    f"🧹 [FileWatcherTrigger] デバウンスデータクリーンアップ: {file_path} (ID: {timer_id})"
+                logger.debug(
+                    "🧹 [FileWatcherTrigger] デバウンスデータクリーンアップ: %s (ID: %s)",
+                    file_path,
+                    timer_id,
                 )
 
     def on_created(self, event: FileSystemEvent) -> None:
@@ -252,7 +273,7 @@ class FileChangeHandler(FileSystemEventHandler):
         if not event.is_directory and self.watch_created:
             src_path = str(event.src_path)  # bytes to str conversion
             if self._should_process_file(src_path):
-                print(f"📁 [FileWatcherTrigger] ファイル作成検出: {src_path}")
+                logger.info("ファイル作成検出: %s", src_path)
                 self._schedule_debounced_event("file_created", src_path)
 
     def on_modified(self, event: FileSystemEvent) -> None:
@@ -267,7 +288,7 @@ class FileChangeHandler(FileSystemEventHandler):
         if not event.is_directory and self.watch_modified:
             src_path = str(event.src_path)  # bytes to str conversion
             if self._should_process_file(src_path):
-                print(f"✏️ [FileWatcherTrigger] ファイル変更検出: {src_path}")
+                logger.info("ファイル変更検出: %s", src_path)
                 self._schedule_debounced_event("file_modified", src_path)
 
     async def _publish_event(self, action: str, file_path: str) -> None:
@@ -293,7 +314,7 @@ class FileChangeHandler(FileSystemEventHandler):
             timestamp=None,  # Auto-generated
             source="file_watcher",
         )
-        print(f"🚀 [FileWatcherTrigger] デバウンス完了、イベント発行: {event.data}")
+        logger.debug("デバウンス完了、イベント発行: %s", event.data)
         await self.event_bus.publish(event)
 
     async def cleanup(self) -> None:
@@ -311,7 +332,7 @@ class FileChangeHandler(FileSystemEventHandler):
         self.last_event_times.clear()
         self.timer_ids.clear()
 
-        print(
+        logger.info(
             "🧹 [FileWatcherTrigger] デバウンスタイマーと追跡データをクリーンアップしました"
         )
 
@@ -386,8 +407,10 @@ class FileWatcherTrigger(Trigger):
         if not Path(watch_path).exists():
             raise OSError(f"監視パスが存在しません: {watch_path}")
 
-        print(
-            f"📂 [FileWatcherTrigger] 監視開始: {watch_path} (recursive={config.get('recursive', False)})"
+        logger.info(
+            "📂 [FileWatcherTrigger] 監視開始: %s (recursive=%s)",
+            watch_path,
+            config.get("recursive", False),
         )
 
         try:
@@ -399,9 +422,9 @@ class FileWatcherTrigger(Trigger):
                 self.handler, watch_path, recursive=config.get("recursive", False)
             )
             self.observer.start()
-            print(f"✅ [FileWatcherTrigger] 監視開始成功: {watch_path}")
+            logger.info("監視開始成功: %s", watch_path)
         except Exception as e:
-            print(f"❌ [FileWatcherTrigger] 監視開始エラー: {watch_path} - {e}")
+            logger.error("監視開始エラー: %s - %s", watch_path, str(e))
             raise
 
     async def stop(self) -> None:
@@ -421,4 +444,4 @@ class FileWatcherTrigger(Trigger):
 
         self.observer = None
         self.handler = None
-        print("🛑 [FileWatcherTrigger] ファイル監視を停止しました")
+        logger.info("ファイル監視を停止しました")

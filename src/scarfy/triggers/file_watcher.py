@@ -403,9 +403,11 @@ class FileWatcherTrigger(Trigger):
                 self.handler, watch_path, recursive=config.get("recursive", False)
             )
             self.observer.start()
-            print(f"✅ [FileWatcherTrigger] 監視開始成功: {watch_path}")
+            logger = get_logger(__name__)
+            logger.info("監視開始成功: %s", watch_path)
         except Exception as e:
-            print(f"❌ [FileWatcherTrigger] 監視開始エラー: {watch_path} - {e}")
+            logger = get_logger(__name__)
+            logger.error("監視開始エラー: %s - %s", watch_path, str(e))
             raise
 
     async def stop(self) -> None:
@@ -425,4 +427,5 @@ class FileWatcherTrigger(Trigger):
 
         self.observer = None
         self.handler = None
-        print("🛑 [FileWatcherTrigger] ファイル監視を停止しました")
+        logger = get_logger(__name__)
+        logger.info("ファイル監視を停止しました")

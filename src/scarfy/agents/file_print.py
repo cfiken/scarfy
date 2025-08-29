@@ -15,6 +15,7 @@ from typing import Dict, Any
 
 from ..core.interfaces import Agent
 from ..core.events import Event
+from ..utils.logger import get_logger
 
 
 class FilePrintAgent(Agent):
@@ -147,7 +148,15 @@ class FilePrintAgent(Agent):
                 return result
 
             # 標準出力に表示
+            logger = get_logger(__name__)
             trigger_action = result["trigger_action"]
+            logger.info(
+                "ファイル表示: %s (ファイル: %s, サイズ: %sバイト)",
+                trigger_action,
+                file_path,
+                file_size
+            )
+            
             print("=" * 60)
             print(f"🔔 トリガー: {trigger_action}")
             if show_path:

@@ -14,6 +14,7 @@ import copy
 from typing import Dict, Any, List
 from .events import EventBus, Event
 from .interfaces import Trigger, Agent, Output
+from ..utils.logger import get_logger
 
 
 class Workflow:
@@ -245,7 +246,8 @@ class ScarfyEngine:
             # Get the configured agent
             agent_type = workflow.agent_config.get("type")
             if not agent_type or agent_type not in self.agents:
-                print(f"Agent '{agent_type}' not found for workflow '{workflow.name}'")
+                logger = get_logger(__name__)
+                logger.error("Agent '%s' not found for workflow '%s'", agent_type, workflow.name)
                 return
 
             agent = self.agents[agent_type]
@@ -259,11 +261,10 @@ class ScarfyEngine:
                 output = self.outputs[output_type]
                 await output.send(result, workflow.output_config)
             else:
-                print(
-                    f"Output '{output_type}' not found for workflow '{workflow.name}'"
-                )
+                logger = get_logger(__name__)
+                logger.error("Output '%s' not found for workflow '%s'", output_type, workflow.name)
 
         except Exception as e:
             # Log error but don't let it crash other workflows
-            print(f"Error processing workflow '{workflow.name}': {e}")
-            # In production, use proper logging instead of print
+            logger = get_logger(__name__)
+            logger.error("Error processing workflow '%s': %s", workflow.name, str(e))

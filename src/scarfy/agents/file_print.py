@@ -154,9 +154,9 @@ class FilePrintAgent(Agent):
                 "ファイル表示: %s (ファイル: %s, サイズ: %sバイト)",
                 trigger_action,
                 file_path,
-                file_size
+                file_size,
             )
-            
+
             print("=" * 60)
             print(f"🔔 トリガー: {trigger_action}")
             if show_path:

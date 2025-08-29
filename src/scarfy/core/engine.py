@@ -247,7 +247,9 @@ class ScarfyEngine:
             agent_type = workflow.agent_config.get("type")
             if not agent_type or agent_type not in self.agents:
                 logger = get_logger(__name__)
-                logger.error("Agent '%s' not found for workflow '%s'", agent_type, workflow.name)
+                logger.error(
+                    "Agent '%s' not found for workflow '%s'", agent_type, workflow.name
+                )
                 return
 
             agent = self.agents[agent_type]
@@ -262,7 +264,11 @@ class ScarfyEngine:
                 await output.send(result, workflow.output_config)
             else:
                 logger = get_logger(__name__)
-                logger.error("Output '%s' not found for workflow '%s'", output_type, workflow.name)
+                logger.error(
+                    "Output '%s' not found for workflow '%s'",
+                    output_type,
+                    workflow.name,
+                )
 
         except Exception as e:
             # Log error but don't let it crash other workflows
